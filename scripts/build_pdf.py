@@ -2,7 +2,7 @@
 """
 Build a simple PDF document from repository Markdown files.
 
-Default input: README.md
+Default input: README.md (+ LICENSE if exists)
 Default output: docs/DeepIntoPep.pdf
 """
 
@@ -177,9 +177,19 @@ def parse_markdown(md: str) -> list[MdBlock]:
     return blocks
 
 
-def build_pdf(markdown_text: str, output_path: Path, title: str) -> None:
-    font_name = _register_font()
+@dataclass(frozen=True)
+class PdfStyles:
+    font_name: str
+    base: ParagraphStyle
+    h1: ParagraphStyle
+    h2: ParagraphStyle
+    h3: ParagraphStyle
+    quote: ParagraphStyle
+    code: ParagraphStyle
 
+
+def _make_styles() -> PdfStyles:
+    font_name = _register_font()
     styles = getSampleStyleSheet()
     base = ParagraphStyle(
         "Base",
@@ -238,6 +248,60 @@ def build_pdf(markdown_text: str, output_path: Path, title: str) -> None:
         spaceBefore=6,
         spaceAfter=8,
     )
+    return PdfStyles(
+        font_name=font_name, base=base, h1=h1, h2=h2, h3=h3, quote=quote, code=code
+    )
+
+
+def _append_markdown(story: list[object], markdown_text: str, title: str) -> None:
+    s = _make_styles()
+    blocks = parse_markdown(markdown_text)
+
+    # Ensure a title at top if Markdown doesn't start with heading1.
+    if not blocks or blocks[0].kind != "heading1":
+        story.append(Paragraph(title, s.h1))
+        story.append(Spacer(1, 4))
+
+    for b in blocks:
+        if b.kind == "heading1":
+            story.append(Paragraph(b.lines[0], s.h1))
+        elif b.kind == "heading2":
+            story.append(Paragraph(b.lines[0], s.h2))
+        elif b.kind == "heading3":
+            story.append(Paragraph(b.lines[0], s.h3))
+        elif b.kind == "para":
+            story.append(Paragraph(_escape_for_paragraph(b.lines[0]), s.base))
+        elif b.kind == "quote":
+            story.append(Paragraph(_escape_for_paragraph(b.lines[0]), s.quote))
+        elif b.kind == "code":
+            story.append(Preformatted("\n".join(b.lines).rstrip(), s.code))
+        elif b.kind == "bullets":
+            items = [
+                ListItem(Paragraph(_escape_for_paragraph(x), s.base), leftIndent=0)
+                for x in b.lines
+            ]
+            story.append(
+                ListFlowable(
+                    items,
+                    bulletType="bullet",
+                    start="circle",
+                    leftIndent=14,
+                    bulletFontName=s.font_name,
+                )
+            )
+            story.append(Spacer(1, 2))
+
+
+def _append_text_as_code(story: list[object], text: str, section_title: str) -> None:
+    s = _make_styles()
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(section_title, s.h2))
+    story.append(Preformatted(text.rstrip(), s.code))
+
+
+def build_pdf_from_files(input_paths: list[Path], output_path: Path, title: str) -> None:
+    # Register font once (idempotent). Styles creation will reuse it.
+    _register_font()
 
     doc = SimpleDocTemplate(
         str(output_path),
@@ -251,41 +315,20 @@ def build_pdf(markdown_text: str, output_path: Path, title: str) -> None:
     )
 
     story: list[object] = []
-    blocks = parse_markdown(markdown_text)
 
-    # Ensure a title at top if Markdown doesn't start with heading1.
-    if not blocks or blocks[0].kind != "heading1":
-        story.append(Paragraph(title, h1))
-        story.append(Spacer(1, 4))
+    first = True
+    for p in input_paths:
+        if not p.exists():
+            continue
+        content = p.read_text(encoding="utf-8", errors="replace")
+        if not first:
+            story.append(Spacer(1, 14))
+        first = False
 
-    for b in blocks:
-        if b.kind == "heading1":
-            story.append(Paragraph(b.lines[0], h1))
-        elif b.kind == "heading2":
-            story.append(Paragraph(b.lines[0], h2))
-        elif b.kind == "heading3":
-            story.append(Paragraph(b.lines[0], h3))
-        elif b.kind == "para":
-            story.append(Paragraph(_escape_for_paragraph(b.lines[0]), base))
-        elif b.kind == "quote":
-            story.append(Paragraph(_escape_for_paragraph(b.lines[0]), quote))
-        elif b.kind == "code":
-            story.append(Preformatted("\n".join(b.lines).rstrip(), code))
-        elif b.kind == "bullets":
-            items = [
-                ListItem(Paragraph(_escape_for_paragraph(x), base), leftIndent=0)
-                for x in b.lines
-            ]
-            story.append(
-                ListFlowable(
-                    items,
-                    bulletType="bullet",
-                    start="circle",
-                    leftIndent=14,
-                    bulletFontName=font_name,
-                )
-            )
-            story.append(Spacer(1, 2))
+        if p.name.upper() == "LICENSE":
+            _append_text_as_code(story, content, "LICENSE")
+        else:
+            _append_markdown(story, content, title=p.name)
 
     doc.build(story)
 
@@ -304,8 +347,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--input",
-        default="README.md",
-        help="Markdown input file (default: README.md)",
+        action="append",
+        help="Input file. Repeatable. If omitted, uses README.md (+ LICENSE if exists).",
     )
     parser.add_argument(
         "--output",
@@ -316,12 +359,18 @@ def main() -> int:
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[1]
-    input_path = (repo_root / args.input).resolve()
     output_path = (repo_root / args.output).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    markdown_text = input_path.read_text(encoding="utf-8")
-    build_pdf(markdown_text, output_path, args.title)
+    if args.input:
+        input_paths = [(repo_root / p).resolve() for p in args.input]
+    else:
+        input_paths = [(repo_root / "README.md").resolve()]
+        license_path = (repo_root / "LICENSE").resolve()
+        if license_path.exists():
+            input_paths.append(license_path)
+
+    build_pdf_from_files(input_paths, output_path, args.title)
     print(f"Wrote: {output_path}")
     return 0
 
