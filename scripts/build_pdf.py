@@ -178,7 +178,7 @@ def parse_markdown(md: str) -> list[MdBlock]:
 
 
 @dataclass(frozen=True)
-class PdfStyles:
+class PdfStyles(object):
     font_name: str
     base: ParagraphStyle
     h1: ParagraphStyle
