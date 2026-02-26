@@ -37,3 +37,52 @@ PEP 8 是 Python 官方推荐的代码风格规范，目标是让代码在团队
 - **导入排序**：`isort`（或使用 `ruff` 的 import 规则）
 
 > 若本仓库后续加入可执行代码与 CI，可在此基础上补充具体的配置文件与执行命令。
+
+## PEP 100（Python Unicode 集成）简介
+
+PEP 100 由 Marc-André Lemburg 于 2000 年 3 月 10 日撰写，状态为 **Final**，是一份面向 Python 2.0 的标准轨（Standards Track）提案。它的目标是将 Unicode 3.0 原生支持引入 Python，让开发者像使用普通字符串一样方便地使用 Unicode 字符串，同时尽量避免引入复杂性和隐患。
+
+### 背景与动因
+
+在 PEP 100 出现之前，Python 只有基于字节的 `str` 类型，处理多语言文本需要开发者自行管理编码与解码，极易出错。随着互联网国际化的推进，原生 Unicode 支持已成为编程语言的刚需。PEP 100 正是在这一背景下诞生——由惠普（Hewlett-Packard）提供资金支持，将 Unicode 深度集成进 Python 的核心对象模型。
+
+### 核心设计目标
+
+- **易用性**：让 Unicode 字符串的使用体验尽可能接近普通字符串，降低学习成本。
+- **兼容性**：在引入 `unicode` 类型的同时保持与已有 `str` 类型的互操作能力，包括自动混合运算（coercion）。
+- **可扩展性**：通过 Codec（编解码器）注册机制，支持任意编码格式的灵活扩展。
+
+### 主要内容覆盖
+
+PEP 100 是一份非常全面的集成规范，涵盖了以下关键领域：
+
+- **Unicode 构造器与类型对象**：定义 `unicode()` 构造函数的行为，包括从字节串解码和从其他对象转换。
+- **默认编码（Default Encoding）**：引入 `sys.getdefaultencoding()` 概念，控制 `str` 与 `unicode` 混合运算时的隐式编码假设（Python 2 默认为 ASCII）。
+- **Codec 查找与注册**：设计 `codecs.lookup()` / `codecs.register()` 接口，支持 UTF-8、UTF-16、Latin-1、ASCII 等标准编码，并允许第三方注册自定义编解码器。
+- **字符属性与大小写转换**：基于 Unicode 字符数据库提供 `unicodedata` 模块，支持类别查询、大小写映射等操作。
+- **文件与流 I/O**：通过 `codecs.open()` 支持以指定编码读写文件，解决了原始 `open()` 只处理字节的局限。
+- **正则表达式**：扩展 `re` 模块以支持 Unicode 字符类（如 `\w` 匹配 Unicode 字母）和 Unicode 字符串的模式匹配。
+- **格式化与 Buffer 接口**：确保 `%` 格式化操作符和 C 层 Buffer Protocol 能正确处理 Unicode 对象。
+- **序列化**：定义 pickle/marshal 对 Unicode 对象的支持。
+
+### 内部存储格式
+
+PEP 100 规定 Python 内部以 `Py_UNICODE` 数组存储 Unicode 字符串：
+
+- 默认编译使用 **UCS-2**（16 位），每个码位占 2 字节，能表示基本多语言平面（BMP, U+0000–U+FFFF）。
+- 编译时启用 `--enable-unicode=ucs4` 则切换为 **UCS-4**（32 位），可覆盖全部 Unicode 码位，但内存开销翻倍。
+
+这种"固定宽度"方案简化了索引和切片操作（O(1) 随机访问），但在内存效率上存在取舍。
+
+### 后续演进
+
+PEP 100 的方案在 Python 2 时代服务了十余年。进入 Python 3 后，字符串模型迎来了两次重大变革：
+
+- **Python 3.0**：彻底分离 `str`（Unicode）与 `bytes`（字节），消除了 PEP 100 中隐式 coercion 带来的歧义。
+- **Python 3.3（PEP 393）**：引入"灵活字符串表示"（Flexible String Representation），根据字符串中最大码位自动选择 1 字节（Latin-1）、2 字节（UCS-2）或 4 字节（UCS-4）存储，兼顾了内存效率和完整 Unicode 覆盖。
+
+### 对开发者的启示
+
+- **编码意识**：PEP 100 从底层告诉我们——文本不是字节，处理文本时必须明确编码。这一思想在 Python 3 中被强制执行（`str` 与 `bytes` 不可隐式混合），也是编写健壮国际化程序的基础。
+- **Codec 架构**：PEP 100 设计的 Codec 注册/查找机制至今仍是 Python 编码体系的核心。理解 `codecs` 模块有助于处理非标准编码或自定义序列化场景。
+- **理解历史有助于理解现在**：Python 3 中许多看似"理所当然"的设计（如 `str` 默认就是 Unicode、`open()` 默认接受 `encoding` 参数）都源于 PEP 100 奠定的基础以及后续对其不足之处的改进。
