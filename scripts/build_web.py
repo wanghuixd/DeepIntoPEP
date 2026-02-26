@@ -187,6 +187,7 @@ def build_html(peps: list[dict], output_path: Path) -> None:
     .doc-tags {{
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 0.35rem;
       margin-bottom: 1.75rem;
     }}
@@ -196,8 +197,9 @@ def build_html(peps: list[dict], output_path: Path) -> None:
       font-size: 0.75rem;
       padding: 0.2rem 0.5rem;
       background: var(--tag-bg);
-      border-radius: 4px;
+      border-radius: 12px;
       color: var(--text-muted);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }}
 
     .doc-body {{
