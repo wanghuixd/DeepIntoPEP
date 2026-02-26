@@ -12,6 +12,11 @@ DeepIntoPep is a documentation/educational project about Python Enhancement Prop
   - Reads `README.md` + `LICENSE` → writes `docs/DeepIntoPep.pdf`
   - Supports `--input`, `--output`, `--title` flags
 
+- **Build Web**: `python3 scripts/build_web.py` (from repo root)
+  - Indexes `docs/*.md` PEP documents → writes `web/index.html`
+  - Supports `--docs`, `--output` flags
+  - Serve with `python3 -m http.server 8765 --directory web`
+
 ### Dependencies
 
 - **Python 3.10+** (uses `str | None` union syntax)
