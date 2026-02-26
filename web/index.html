@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DeepIntoPep - PEP 提案索引</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --bg-sidebar: #f5f5f4;
+      --border: #e7e5e4;
+      --text: #1c1917;
+      --text-muted: #57534e;
+      --accent: #44403c;
+      --tag-bg: #e7e5e4;
+      --code-bg: #f5f5f4;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+
+    body {
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .layout {
+      display: flex;
+      height: 100%;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 1.5rem 0;
+    }
+
+    .sidebar-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      padding: 0 1.25rem 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 0.5rem 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .nav-item:hover {
+      background: rgba(0,0,0,0.04);
+    }
+
+    .nav-item.active {
+      background: rgba(0,0,0,0.06);
+      border-left-color: var(--accent);
+      font-weight: 500;
+    }
+
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2.5rem 3rem 4rem;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .doc-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      line-height: 1.35;
+    }
+
+    .doc-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .doc-tag {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      background: var(--tag-bg);
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    .doc-body {
+      font-size: 1rem;
+    }
+
+    .doc-body h1 { font-size: 1.5rem; margin: 2rem 0 0.75rem; font-weight: 600; }
+    .doc-body h2 { font-size: 1.25rem; margin: 1.75rem 0 0.6rem; font-weight: 600; }
+    .doc-body h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; font-weight: 600; }
+    .doc-body p { margin: 0 0 1rem; }
+    .doc-body ul, .doc-body ol { margin: 0 0 1rem; padding-left: 1.5rem; }
+    .doc-body li { margin-bottom: 0.35rem; }
+    .doc-body blockquote {
+      margin: 1rem 0;
+      padding: 0.5rem 0 0.5rem 1rem;
+      border-left: 4px solid var(--border);
+      color: var(--text-muted);
+    }
+    .doc-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    .doc-body th, .doc-body td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+    }
+    .doc-body th { background: var(--bg-sidebar); font-weight: 600; }
+    .doc-body code {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+    }
+    .doc-body pre {
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-size: 0.88rem;
+    }
+    .doc-body pre code {
+      background: none;
+      padding: 0;
+    }
+    .doc-body a { color: var(--accent); text-decoration: none; }
+    .doc-body a:hover { text-decoration: underline; }
+
+    .empty-state {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      padding: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">PEP 提案索引</div>
+      <nav id="nav"></nav>
+    </aside>
+    <main class="main">
+      <article id="content">
+        <div class="empty-state">选择左侧文档查看内容</div>
+      </article>
+    </main>
+  </div>
+
+  <script>
+    const PEP_DATA = [{"id": "pep426", "title": "PEP 426：Python 软件包元数据 2.0", "tags": ["PEP 426"], "body": "# PEP 426：Python 软件包元数据 2.0\n\nPEP 426 是 Python 增强提案，旨在定义 Python 软件分发的**元数据规范 2.0**。作者为 Nick Coghlan、Daniel Holth、Donald Stufft，于 2013 年提出。该 PEP 现已被**撤回**（Withdrawn），但其设计思路对后续规范（如 PEP 566）产生了重要影响。\n\n## 背景与动机\n\n在 PEP 426 之前，Python 包元数据沿用自 PEP 345 的 **Key-Value 文本格式**（类似 RFC 2822 邮件头），例如：\n\n```\nName: my-package\nVersion: 1.0.0\nSummary: A short description\n```\n\n这种格式存在若干局限：\n\n- **解析复杂**：需要专门解析器处理多行值、编码等；\n- **扩展困难**：新增字段缺乏统一机制；\n- **工具链割裂**：不同工具（pip、setuptools、PyPI）对元数据的处理方式不一。\n\nPEP 426 提出将元数据迁移到 **JSON 兼容的内存表示**，以简化解析、便于扩展，并与现代工具链更好集成。\n\n## 核心提案\n\n### 1. JSON 化元数据\n\n将传统的 Key-Value 格式改为 JSON 结构，例如：\n\n```json\n{\n  \"name\": \"my-package\",\n  \"version\": \"1.0.0\",\n  \"summary\": \"A short description\",\n  \"description\": \"Extended description in Markdown or reStructuredText\",\n  \"keywords\": [\"tag1\", \"tag2\"],\n  \"license\": \"MIT\",\n  \"requires_dist\": [\"requests>=2.0\"],\n  \"requires_python\": \">=3.8\"\n}\n```\n\n### 2. 主要元数据字段\n\n| 字段 | 说明 |\n|------|------|\n| `name` | 包名，主要标识符 |\n| `version` | 版本号（遵循 PEP 440） |\n| `summary` | 简短描述 |\n| `description` | 详细描述（支持 Markdown/reStructuredText） |\n| `keywords` | 关键词列表 |\n| `license` | 许可证 |\n| `requires_dist` | 依赖列表（遵循 PEP 508） |\n| `requires_python` | Python 版本要求 |\n| `author` / `maintainer` | 作者/维护者信息 |\n| `project_url` | 项目链接（如 Home-Page、Documentation） |\n\n### 3. 扩展机制\n\nPEP 426 引入**正式扩展机制**，允许在不修改核心规范的前提下新增字段。扩展字段以特定前缀命名，便于工具识别与忽略未知字段。\n\n## 与相关 PEP 的关系\n\nPEP 426 建立在以下规范之上：\n\n- **PEP 425**：二进制兼容性标签（wheel 平台标签）\n- **PEP 427**：Wheel 分发格式\n- **PEP 440**：版本标识与依赖规范\n- **PEP 503**：PyPI 简单 API\n- **PEP 508**：依赖说明符语法\n- **PEP 518**：构建系统依赖（pyproject.toml）\n\n## 为何被撤回\n\nPEP 426 于 2013 年 12 月起被**推迟**，至 2017 年 3 月正式**撤回**。主要原因包括：\n\n1. **迁移成本过高**：从 Key-Value 全面切换到 JSON 涉及 pip、setuptools、PyPI、wheel 等整个生态，缺乏可行的渐进迁移路径。\n2. **社区共识**：包装社区倾向于**增量改进**而非推倒重来。\n3. **替代方案**：**PEP 566** 采用更温和的方式——保留原有 Key-Value 格式，同时定义将其转换为嵌套 JSON 结构的标准机制，既兼容现有工具，又为未来扩展留出空间。\n\n## 历史意义与启示\n\n尽管 PEP 426 未获采纳，其设计思想仍有参考价值：\n\n- **JSON 化**：现代工具（如 `importlib.metadata`）已支持将元数据解析为结构化数据；\n- **扩展机制**：PEP 566 及后续规范吸收了“可扩展元数据”的思路；\n- **规范演进**：大型规范变更需要兼顾**向后兼容**与**渐进迁移**，单次大改往往难以落地。\n\n> 当前核心元数据规范（如 packaging.python.org 上的 Core Metadata）仍以邮件头式 Key-Value 为主，版本号已演进至 2.x。若需了解最新字段与格式，可查阅 [Core Metadata 规范](https://packaging.python.org/en/latest/specifications/core-metadata/)。\n"}];
+
+    const nav = document.getElementById('nav');
+    const content = document.getElementById('content');
+
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+    });
+
+    function renderDoc(pep) {
+      content.innerHTML = `
+        <h1 class="doc-title">${pep.title}</h1>
+        <div class="doc-tags">
+          ${pep.tags.map(t => `<span class="doc-tag">${t}</span>`).join('')}
+        </div>
+        <div class="doc-body">${marked.parse(pep.body)}</div>
+      `;
+    }
+
+    function initNav() {
+      nav.innerHTML = PEP_DATA.map(pep => `
+        <a href="#${pep.id}" class="nav-item" data-id="${pep.id}">${pep.title}</a>
+      `).join('');
+
+      nav.querySelectorAll('.nav-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          const id = el.dataset.id;
+          location.hash = id;
+          selectDoc(id);
+        });
+      });
+    }
+
+    function selectDoc(id) {
+      const pep = PEP_DATA.find(p => p.id === id);
+      if (pep) {
+        nav.querySelectorAll('.nav-item').forEach(n => {
+          n.classList.toggle('active', n.dataset.id === id);
+        });
+        renderDoc(pep);
+      }
+    }
+
+    if (PEP_DATA.length > 0) {
+      initNav();
+      const hashId = location.hash.slice(1);
+      const initial = hashId ? PEP_DATA.find(p => p.id === hashId) : null;
+      if (initial) {
+        selectDoc(initial.id);
+      } else {
+        selectDoc(PEP_DATA[0].id);
+      }
+      window.addEventListener('hashchange', () => {
+        const id = location.hash.slice(1);
+        if (id) selectDoc(id);
+      });
+    }
+  </script>
+</body>
+</html>
